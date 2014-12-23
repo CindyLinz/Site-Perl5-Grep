@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Perl5 source grep</title>
+        <script>
+            var ajax = function(url, cb){
+                var xhr = new XMLHttpRequest();
+                xhr.onload = function(){
+                    cb(xhr.responseText);
+                };
+                xhr.open('GET', 'http://112.121.80.250/perl5/' + url);
+                xhr.send();
+            };
+
+            var result_pad;
+            var waiting_pad;
+            var waiting;
+            var limit;
+
+            var esc = function(str){
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            };
+
+            var add_found = function(file, line, pre_content, content, post_content){
+                if( limit < 0 )
+                    return;
+                --limit;
+                //console.log(file + " " + line + ": " + pre_content + '[' + content + ']' + post_content);
+                var entry = document.createElement('div');
+                if( limit < 0 ){
+                    entry.innerHTML = '...(more)';
+                }else{
+                    entry.innerHTML = '<a href=show.html?file=' + file + '&line=' + line +' target=_blank>' + file + " " + line + ": " + esc(pre_content) + '<span style=color:red>' + esc(content) + '</span>' + esc(post_content) + '</a>';
+                }
+                result_pad.appendChild(entry);
+            };
+
+            var search_file = function(file, search_regex){
+                ajax(file, function(content){
+                    var line_no = 1;
+                    var match;
+                    var prefix, prefix0, i, first_line_pos, length, got;
+                    while( match = search_regex.exec(content) ){
+                        prefix += prefix0 = content.substr(0, match.index);
+                        length = prefix0.length;
+                        for(i=0; i<length; ++i)
+                            if( prefix0[i]=='\n' )
+                                ++line_no;
+                        length = prefix.length;
+                        for(i=length-1; i>=0; --i)
+                            if( prefix[i]=='\n' ){
+                                prefix = prefix.substr(i+1);
+                                break;
+                            }
+                        got = match[0];
+                        content = content.substr(match.index + match[0].length);
+                        if( got[got.length-1]=='\n' )
+                            first_line_pos = -1;
+                        else{
+                            length = content.length;
+                            for(i=0; i<length; ++i)
+                                if( content[i]=='\n' ){
+                                    first_line_pos = i;
+                                    break;
+                                }
+                        }
+                        add_found(file, line_no, prefix, got, content.substr(0, first_line_pos));
+
+                        prefix += got;
+
+                        length = got.length;
+                        for(i=0; i<length; ++i)
+                            if( got[i]=='\n' )
+                                ++line_no;
+                    }
+                    --waiting;
+                    waiting_pad.innerHTML = waiting;
+                });
+            };
+
+            window.Search = function(query, _limit){
+                result_pad = document.querySelector('#result');
+                result_pad.innerHTML = '';
+                waiting_pad = document.querySelector('#waiting');
+                waiting_pad.innerHTML = 'root';
+
+                limit = _limit - 0;
+                if( !( limit > 0 ) )
+                    limit = 1000;
+
+                var search_regex = new RegExp(query);
+
+                waiting = 0;
+                ajax('', function(res){
+                    //console.log(res);
+                    var target_entry = /href="([_\w]+\.[yhc])"/;
+                    var match;
+                    while( match = target_entry.exec(res) ){
+                        //console.log(match[1]);
+                        res = res.substr(match.index + match[0].length);
+                        ++waiting;
+                        search_file(match[1], search_regex);
+                    }
+                });
+                waiting_pad.innerHTML = waiting;
+            };
+        </script>
+    </head>
+    <body>
+        <div>Source version: <span id=ver></span></div>
+        <a href=http://112.121.80.250/perl5/ target=_blank>Browse</a>
+        <form style=display:inline-box onsubmit="Search(document.querySelector('#search').value, document.querySelector('#limit').value); return false">
+            <table>
+                <tr><td align=right>Search: <td><input id=search>
+                <tr><td align=right>Limit: <td><input id=limit value=1000>
+                <tr><td colspan=2><button id=go>Go!</button> <button onclick='
+                    window.open("?search=" + encodeURIComponent(document.querySelector("#search").value) + "&limit=" + encodeURIComponent(document.querySelector("#limit").value), "_blank");
+                    return false;
+                '>Go in new window</button>
+            </table>
+        </form>
+        <div>waiting <span id=waiting></span> files</div>
+        <div id=result>
+        </div>
+        <script>
+            (function(){
+                var match = document.location.search.match(/search=([^&]+)&limit=([^&]+)/);
+                if( match )
+                    Search(match[1], match[2]);
+            })();
+
+            document.querySelector('#search').focus();
+
+            ajax('VERSION', function(res){
+                document.querySelector('#ver').innerHTML = res;
+            });
+        </script>
+    </body>
+</html>

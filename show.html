@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Perl5 search result</title>
+        <script>
+            var ajax = function(url, cb){
+                var xhr = new XMLHttpRequest();
+                xhr.onload = function(){
+                    cb(xhr.responseText);
+                };
+                xhr.open('GET', 'http://112.121.80.250/perl5/' + url);
+                xhr.send();
+            };
+
+            var match = document.location.search.match(/file=([^&]*)&line=([^&]*)/);
+            var file = match[1];
+            var line = match[2]-0;
+
+            ajax(file, function(content){
+                var extract = (new RegExp(
+                    (line > 1 ? ('((?:.*\\n){'+(line-1)+'})') : '()') +
+                    '([^\n]*\n?)'
+                )).exec(content);
+
+                var prefix = document.createElement('div');
+                prefix.style.whiteSpace = 'pre-wrap';
+                prefix.appendChild(document.createTextNode(extract[1]));
+                document.body.appendChild(prefix);
+
+                var target = document.createElement('div');
+                target.style.whiteSpace = 'pre-wrap';
+                target.style.backgroundColor = 'pink';
+                target.appendChild(document.createTextNode(extract[2]));
+                document.body.appendChild(target);
+
+                var postfix = document.createElement('div');
+                postfix.style.whiteSpace = 'pre-wrap';
+                postfix.appendChild(document.createTextNode(content.substr(extract.index+extract[0].length)));
+                document.body.appendChild(postfix);
+
+                target.scrollIntoView();
+            });
+        </script>
+    </head>
+    <body>
+    </body>
+</html>
