@@ -22,18 +22,18 @@
                     '([^\n]*\n?)'
                 )).exec(content);
 
-                var prefix = document.createElement('div');
+                var prefix = document.createElement('code');
                 prefix.style.whiteSpace = 'pre-wrap';
                 prefix.appendChild(document.createTextNode(extract[1]));
                 document.body.appendChild(prefix);
 
-                var target = document.createElement('div');
+                var target = document.createElement('code');
                 target.style.whiteSpace = 'pre-wrap';
                 target.style.backgroundColor = 'pink';
                 target.appendChild(document.createTextNode(extract[2]));
                 document.body.appendChild(target);
 
-                var postfix = document.createElement('div');
+                var postfix = document.createElement('code');
                 postfix.style.whiteSpace = 'pre-wrap';
                 postfix.appendChild(document.createTextNode(content.substr(extract.index+extract[0].length)));
                 document.body.appendChild(postfix);
